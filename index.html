@@ -736,7 +736,7 @@ function cottage(b, x, y, s, night) {
   b.restore();
 }
 function bakeBg() {
-  var night = G.wx === 'moon', rain = G.wx === 'rain', ph = dayPhase(), key = W + 'x' + H + G.wx + ph; if (key === bgKey) return; bgKey = key; if (!SOIL) mkSoil();
+  var night = G.wx === 'moon', rain = G.wx === 'rain', ph = dayPhase(), key = W + 'x' + H + G.wx + ph + (G.side ? 's' : ''); if (key === bgKey) return; bgKey = key; if (!SOIL) mkSoil();
   bg.width = Math.round(W * DPR); bg.height = Math.round(H * DPR); var b = bg.getContext('2d'); b.setTransform(DPR, 0, 0, DPR, 0, 0);
   var L = G.lay, c = L.cell, sk = b.createLinearGradient(0, 0, 0, H);
   if (night) { sk.addColorStop(0, '#1e1f5c'); sk.addColorStop(.5, '#5a4aa0'); sk.addColorStop(1, '#a080c8'); }
@@ -790,7 +790,7 @@ function floatTx(x, y, tx, col, big) { G.floats.push({ x: x, y: y, tx: tx, c: co
 function flyTo(x, y, target, kind, data) { var el = $(target); if (!el) return; var r = el.getBoundingClientRect(); G.fly.push({ x: x, y: y, sx: x, sy: y, tx: r.left + r.width / 2, ty: r.top + r.height / 2, t: 0, d: .7 + Math.random() * .2, k: kind, data: data }); }
 /* ---------- UI helpers ---------- */
 function show(id) { $$('.screen').forEach(function (s) { s.classList.toggle('hidden', s.id !== id); }); }
-var toastT = 0, toastQ = []; function toast(m) { if (!$('#modal').classList.contains('hidden')) { if (toastQ.length < 4) toastQ.push(m); return; } var t = $('.toast'); if (t) t.remove(); t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(function () { t.remove(); }, 2300); }
+var toastT = 0, toastQ = []; function toast(m) { if (!$('#modal').classList.contains('hidden')) { if (toastQ.length < 4) toastQ.push(m); return; } var t = $('.toast'); if (t) t.remove(); t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); var tu = $('#tut'); if (tu && !tu.classList.contains('hidden')) { var tr = tu.getBoundingClientRect(); if (tr.height) t.style.top = Math.round(tr.bottom + 8) + 'px'; } clearTimeout(toastT); toastT = setTimeout(function () { t.remove(); }, 2300); }
 function sfx(n, a) { AU.sfx(n, a); }
 function thumb(id, m, size, opt) { var c = document.createElement('canvas'), d = 2; c.width = size * d; c.height = size * d; var x = c.getContext('2d'); x.scale(d, d); if (id === '__packet') ART.drawPacket(x, size / 2, size * .55, size * .9, m, 0); else if (id === '__decor') ART.drawDecor(x, m, size / 2, size * .92, size * .82, 1, false); else ART.drawCreature(x, BY[id], size / 2, size * .9, size * .72, 1.2, Object.assign({ v: m }, opt || {})); return c; }
 function updHud() {
@@ -951,7 +951,7 @@ function dailyModal() {
 function expandModal() { if (S.owned >= NP) return; var cost = plotCost(); modal(function (b) { b.appendChild(el('h2', '', 'New Patch?')); b.appendChild(el('p', '', 'Grow your garden with one more patch for <span class="coin" style="vertical-align:-3px"></span> <b>' + cost.toLocaleString() + '</b>')); var r = el('div', 'row'); r.appendChild(btn('Not now', 'w', closeModal)); r.appendChild(btn('Buy', 'g', function () { closeModal(); buyPlot(); })); b.appendChild(r); }); }
 /* ---------- tutorial ---------- */
 var TUT = ['Tap an empty patch to plant your first seed!', 'Tap your sprout to water it. Splash! It grows faster.', 'When it wiggles and sparkles, tap it to harvest!', 'Open the Sell basket and sell your creature for coins.', 'Buy more seed packets in the Shop!'];
-function tut() { var t = $('#tut'); if (G.st === 'play' && S.tut < TUT.length) { t.textContent = TUT[S.tut]; t.classList.remove('hidden'); } else t.classList.add('hidden'); }
+function tut() { var t = $('#tut'); if (G.st === 'play' && S.tut < TUT.length) { t.textContent = TUT[S.tut]; t.classList.remove('hidden'); var to = $('.toast'); if (to) { var tr = t.getBoundingClientRect(); if (tr.height) to.style.top = Math.round(tr.bottom + 8) + 'px'; } } else t.classList.add('hidden'); }
 /* ---------- buttons ---------- */
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('button'); if (!b) return; AU.init();
