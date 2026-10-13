@@ -238,6 +238,14 @@ body:not(.ads-on) .adslot{display:none!important}
 </div>
 
 <script>
+/* Canvas radius guards: clamp NaN/negative radii to 0 and skip degenerate shapes so a bad size can never throw IndexSizeError. */
+try { (function (P) { if (!P || P.__zgSafe) return; P.__zgSafe = 1; var oE = P.ellipse, oA = P.arc, oT = P.arcTo, oG = P.createRadialGradient;
+  function n(v) { return v > 0 && isFinite(v) ? v : 0; }
+  P.ellipse = function (x, y, rx, ry, rot, a0, a1, ccw) { rx = n(rx); ry = n(ry); if (!isFinite(x) || !isFinite(y)) return; if (rx < .05 || ry < .05) { this.moveTo(x, y); return; } return oE.call(this, x, y, rx, ry, rot || 0, a0, a1, ccw); };
+  P.arc = function (x, y, r, a0, a1, ccw) { r = n(r); if (!isFinite(x) || !isFinite(y)) return; if (r < .05) { this.moveTo(x, y); return; } return oA.call(this, x, y, r, a0, a1, ccw); };
+  P.arcTo = function (x1, y1, x2, y2, r) { return oT.call(this, x1, y1, x2, y2, n(r)); };
+  P.createRadialGradient = function (x0, y0, r0, x1, y1, r1) { return oG.call(this, x0 || 0, y0 || 0, n(r0), x1 || 0, y1 || 0, Math.max(n(r1), .01)); };
+})(window.CanvasRenderingContext2D && CanvasRenderingContext2D.prototype); } catch (e) {}
 /* GA4 custom events (Games by Zaib). Safe: never throws, light (no per-frame calls, dedupe + per-page cap). */
 var ZT_N = 0, ZT_K = '', ZT_KT = 0, ZT_T = 0, ZT_S = 0, ZT_H = 0;
 function zt(n, p) { try { var k = n + JSON.stringify(p || 0), t = Date.now(); if (ZT_N >= 150 || (k === ZT_K && t - ZT_KT < 500)) return; ZT_N++; ZT_K = k; ZT_KT = t; window.gtag && gtag('event', n, Object.assign({ game_id: 'silly-sprout-garden' }, p)); } catch (e) {} }
@@ -693,20 +701,20 @@ function today() { var d = new Date(); return d.getFullYear() + '-' + (d.getMont
 function layout() {
   var land = W > H && H < 600, cols = land ? 5 : 4, rows = NP / cols;
   var top = land ? 58 : 108, bot = land ? 14 : 100, left = land ? 12 : 10, right = land ? 86 : 10;
-  var aw = W - left - right, ah = H - top - bot, back = .9;
-  var cell = Math.min(aw / (cols + .3), ah / (rows + back + .35), 128);
+  var aw = Math.max(0, W - left - right), ah = Math.max(0, H - top - bot), back = .9;
+  var cell = Math.max(8, Math.min(aw / (cols + .3), ah / (rows + back + .35), 128)) || 8; /* floor: tiny/transient viewports (0x0, URL-bar/orientation/fullscreen transitions) used to make this negative */
   var gw = cell * cols, gh = cell * rows, gx = left + (aw - gw) / 2, gy = top + (ah - gh - cell * back) * (land ? .5 : .9) + cell * back;
   G.lay = { land: land, cols: cols, rows: rows, cell: cell, gx: gx, gy: gy, gw: gw, gh: gh, backY: gy - cell * .14 };
 }
 function plotRect(i) { var L = G.lay, c = i % L.cols, r = Math.floor(i / L.cols), p = L.cell * .06; return { x: L.gx + c * L.cell + p, y: L.gy + r * L.cell + p, w: L.cell - p * 2, h: L.cell - p * 2 }; }
 function plotAt(x, y) { var L = G.lay; if (!L) return -1; var c = Math.floor((x - L.gx) / L.cell), r = Math.floor((y - L.gy) / L.cell); if (c < 0 || r < 0 || c >= L.cols || r >= L.rows) return -1; return r * L.cols + c; }
 function decorPos(j) { var L = G.lay, n = DECOR.length, x = L.gx + L.gw * ((j + .5) / n); return { x: x, y: L.backY, s: L.cell * .62 }; }
-function resize() { G.an && G.an.forEach(function (a) { a.ck = null; }); DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); layout(); bakeBg(); }
+function resize() { G.an && G.an.forEach(function (a) { a.ck = null; }); DPR = Math.min(2, window.devicePixelRatio || 1); var de = document.documentElement; W = Math.max(1, innerWidth || de.clientWidth || 1); H = Math.max(1, innerHeight || de.clientHeight || 1); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); layout(); bakeBg(); }
 /* ---------- background (baked per weather/size) ---------- */
 var bg = document.createElement('canvas'), bgKey = '', SOIL = null;
 function dayPhase() { if (G.wx === 'moon') return 'night'; var h = new Date().getHours() + new Date().getMinutes() / 60; return (h >= 17.5 && h < 19.5) ? 'dusk' : (h >= 19.5 || h < 6) ? 'eve' : 'day'; }
 function mkSoil() { var c = document.createElement('canvas'), n = 160; c.width = c.height = n; var x = c.getContext('2d'); x.fillStyle = '#8f5a36'; x.fillRect(0, 0, n, n); for (var i = 0; i < 900; i++) { var a = hash(i * 1.3), b2 = hash(i * 2.7 + 5), r = .6 + hash(i * 4.1) * 1.8; x.fillStyle = i % 3 ? 'rgba(60,30,15,.28)' : 'rgba(255,220,180,.16)'; x.beginPath(); x.arc(a * n, b2 * n, r, 0, 7); x.fill(); } for (i = 0; i < 26; i++) { var px = hash(i * 9.1) * n, py = hash(i * 7.7) * n, pr = 2 + hash(i * 3.3) * 3.2; var gr = x.createRadialGradient(px - pr * .3, py - pr * .4, 0, px, py, pr); gr.addColorStop(0, i % 2 ? '#d8c0a8' : '#b89878'); gr.addColorStop(1, i % 2 ? '#8a6a50' : '#6a4a30'); x.fillStyle = 'rgba(40,20,10,.35)'; x.beginPath(); x.ellipse(px + 1, py + 1.5, pr, pr * .75, 0, 0, 7); x.fill(); x.fillStyle = gr; x.beginPath(); x.ellipse(px, py, pr, pr * .75, 0, 0, 7); x.fill(); } for (i = 0; i < 40; i++) { x.fillStyle = 'rgba(50,25,10,.35)'; x.beginPath(); x.ellipse(hash(i + 50) * n, hash(i + 80) * n, 3 + hash(i) * 3, 1.4, hash(i + 3) * 3, 0, 7); x.fill(); } SOIL = g.createPattern(c, 'repeat'); }
-function tree(b, x, y, s, night, k) { b.fillStyle = 'rgba(40,20,60,.18)'; b.beginPath(); b.ellipse(x, y + 2, s * .8, s * .2, 0, 0, 7); b.fill(); b.fillStyle = night ? '#6a5070' : '#a0704a'; ART.rr(b, x - s * .1, y - s * .7, s * .2, s * .72, s * .08); b.fill(); var c1 = night ? ['#4a5a9a', '#5a6aaa', '#6a7aba'] : [['#4fae5a', '#62c066', '#7ad472'], ['#5ab86a', '#74cc6e', '#96e07e'], ['#e98ab8', '#f4a8cc', '#ffc8e0']][k % 3]; ART.ball(b, x - s * .38, y - s * .9, s * .5, s * .46, c1[0]); ART.ball(b, x + s * .38, y - s * .95, s * .5, s * .46, c1[1]); ART.ball(b, x, y - s * 1.35, s * .62, s * .56, c1[2]); ART.gloss(b, x - s * .2, y - s * 1.55, s * .25, s * .14, .5); }
+function tree(b, x, y, s, night, k) { if (!(s >= 1)) return; b.fillStyle = 'rgba(40,20,60,.18)'; b.beginPath(); b.ellipse(x, y + 2, s * .8, s * .2, 0, 0, 7); b.fill(); b.fillStyle = night ? '#6a5070' : '#a0704a'; ART.rr(b, x - s * .1, y - s * .7, s * .2, s * .72, s * .08); b.fill(); var c1 = night ? ['#4a5a9a', '#5a6aaa', '#6a7aba'] : [['#4fae5a', '#62c066', '#7ad472'], ['#5ab86a', '#74cc6e', '#96e07e'], ['#e98ab8', '#f4a8cc', '#ffc8e0']][k % 3]; ART.ball(b, x - s * .38, y - s * .9, s * .5, s * .46, c1[0]); ART.ball(b, x + s * .38, y - s * .95, s * .5, s * .46, c1[1]); ART.ball(b, x, y - s * 1.35, s * .62, s * .56, c1[2]); ART.gloss(b, x - s * .2, y - s * 1.55, s * .25, s * .14, .5); }
 function cottage(b, x, y, s, night) {
   b.save(); b.translate(x, y); b.scale(s / 100, s / 100);
   b.fillStyle = 'rgba(40,20,60,.22)'; b.beginPath(); b.ellipse(0, 4, 70, 12, 0, 0, 7); b.fill();
@@ -721,7 +729,13 @@ function cottage(b, x, y, s, night) {
   b.restore();
 }
 function bakeBg() {
-  var night = G.wx === 'moon', rain = G.wx === 'rain', ph = dayPhase(), key = W + 'x' + H + G.wx + ph; if (key === bgKey) return; bgKey = key; if (!SOIL) mkSoil();
+  var key = W + 'x' + H + G.wx + dayPhase(); if (key === bgKey || !G.lay || W < 2 || H < 2) return;
+  var prev = bg, isl = G.isl, pond = G.pond, cot = G.cot;
+  try { bg = document.createElement('canvas'); bakeBgRaw(bg); bgKey = key; }
+  catch (e) { bg = prev; G.isl = isl || G.isl; G.pond = pond || G.pond; G.cot = cot || G.cot; bgKey = key; try { zt('js_error', { msg: String(e && e.message || e).slice(0, 90), where: 'bakeBg' }); } catch (e2) {} }
+}
+function bakeBgRaw(bg) {
+  var night = G.wx === 'moon', rain = G.wx === 'rain', ph = dayPhase(); if (!SOIL) mkSoil();
   bg.width = Math.round(W * DPR); bg.height = Math.round(H * DPR); var b = bg.getContext('2d'); b.setTransform(DPR, 0, 0, DPR, 0, 0);
   var L = G.lay, c = L.cell, sk = b.createLinearGradient(0, 0, 0, H);
   if (night) { sk.addColorStop(0, '#1e1f5c'); sk.addColorStop(.5, '#5a4aa0'); sk.addColorStop(1, '#a080c8'); }
