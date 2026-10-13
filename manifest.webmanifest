@@ -1,0 +1,42 @@
+{
+  "id": "/silly-sprout-garden/",
+  "name": "Silly Sprout Garden",
+  "short_name": "Silly Sprouts",
+  "description": "Silly Sprout Garden by Zaib: plant magic seeds that grow into silly creature-plants like the Cactus Penguin and Banana Shark. Water, harvest, sell and collect 34 creatures, find golden, rainbow and glowing mutations in special weather. Free kids game in your browser.",
+  "lang": "en",
+  "start_url": "/silly-sprout-garden/?source=pwa",
+  "scope": "/silly-sprout-garden/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#ff9ad5",
+  "background_color": "#ff9ad5",
+  "categories": [
+    "games"
+  ],
+  "icons": [
+    {
+      "src": "/silly-sprout-garden/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/silly-sprout-garden/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/silly-sprout-garden/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/silly-sprout-garden/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
