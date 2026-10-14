@@ -979,7 +979,6 @@ function tutIdx() {
   return 4;
 }
 function tut() {
-  if (S.tut < TUT.length && S.tut >= 3 && S.stats.harvest >= 4) { S.tut = TUT.length; zt('tutorial_complete'); }
   var t = $('#tut'), step = tutIdx(); G.tutS = G.st === 'play' ? step : -2;
   if (G.st === 'play' && step >= 0) {
     t.textContent = step === 0 && S.stats.planted ? 'Tap an empty patch to plant another seed!' : TUT[step]; t.classList.remove('hidden');
