@@ -141,7 +141,7 @@ body:not(.ads-on) .adslot{display:none!important}
  .tb{width:62px;height:62px;min-height:62px;border-radius:18px}.tb .ico{width:34px;height:34px}
  #sheet .in{max-height:90vh}#seedChip{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 64px);left:calc(env(safe-area-inset-left,0px) + 10px);transform:none}
  #wxPill{top:calc(env(safe-area-inset-top,0px) + 10px)}
- #tut{top:calc(env(safe-area-inset-top,0px) + 58px)}.toast{top:calc(env(safe-area-inset-top,0px) + 58px)}
+ #tut{top:calc(env(safe-area-inset-top,0px) + 56px);left:calc(env(safe-area-inset-left,0px) + 8px);right:auto;transform:none;width:min(190px,22vw);max-width:190px;font-size:12px;padding:5px 9px;line-height:1.25;text-align:left}.toast{top:calc(env(safe-area-inset-top,0px) + 56px);left:calc(env(safe-area-inset-left,0px) + 8px);right:auto;margin:0;transform:none;width:max-content;max-width:min(190px,22vw);font-size:13px}
  .screen{padding-top:10px;padding-bottom:10px}
  .mbox canvas.big{width:130px;height:130px}.mbox{gap:6px;padding:12px}
 }
@@ -160,8 +160,8 @@ body:not(.ads-on) .adslot{display:none!important}
 .it{background:linear-gradient(180deg,#fff,#fff6fb)}
 .tabs button{transition:background .15s,transform .1s}.tabs button:active{transform:translateY(2px)}
 @media (orientation:landscape) and (max-height:560px){
- #sheet{bottom:0;right:84px;padding:0 8px}
- #sheet .in{max-height:calc(100vh - 66px);max-height:calc(100dvh - 66px);border-radius:28px 28px 0 0;border-bottom:0}
+ #sheet{top:calc(env(safe-area-inset-top,0px) + 56px);bottom:env(safe-area-inset-bottom,0px);right:84px;padding:0 8px;align-items:flex-end}
+ #sheet .in{max-height:100%;overflow-y:auto;border-radius:28px 28px 0 0;border-bottom:0}
 }
 .toast{left:0;right:0;margin:0 auto;transform:none;width:max-content;max-width:min(90vw,380px);font-size:16px}
 @media (orientation:landscape) and (max-height:560px){
@@ -871,7 +871,7 @@ function harvest(i) {
   if (sp.r >= 3 || m) G.shake = .25;
   flyTo(cx, cy, '#bBasket', 'cr', { id: sp.id, m: m });
   floatTx(cx, r.y, (m ? VAR[m].n + ' ' : '') + sp.n, m ? VAR[m].c : '#fff', true);
-  if (S.tut === 2) { S.tut = 3; tut(); }
+  if (S.tut < 3) S.tut = 3; tut();
   if (isNew || newVar) { G.newBook = 1; zt('post_score', { score: bookCount(), level: S.lvl, character: sp.id }); setTimeout(function () { discoverModal(sp, m, isNew); }, 650); }
   checkAch(); save(); updHud();
 }
@@ -961,7 +961,27 @@ function dailyModal() {
 function expandModal() { if (S.owned >= NP) return; var cost = plotCost(); modal(function (b) { b.appendChild(el('h2', '', 'New Patch?')); b.appendChild(el('p', '', 'Grow your garden with one more patch for <span class="coin" style="vertical-align:-3px"></span> <b>' + cost.toLocaleString() + '</b>')); var r = el('div', 'row'); r.appendChild(btn('Not now', 'w', closeModal)); r.appendChild(btn('Buy', 'g', function () { closeModal(); buyPlot(); })); b.appendChild(r); }); }
 /* ---------- tutorial ---------- */
 var TUT = ['Tap an empty patch to plant your first seed!', 'Tap your sprout to water it. Splash! It grows faster.', 'When it wiggles and sparkles, tap it to harvest!', 'Open the Sell basket and sell your creature for coins.', 'Buy more seed packets in the Shop!'];
-function tut() { var t = $('#tut'); if (G.st === 'play' && S.tut < TUT.length) { t.textContent = TUT[S.tut]; t.classList.remove('hidden'); var to = $('.toast'); if (to) { var tr = t.getBoundingClientRect(); if (tr.height) to.style.top = Math.round(tr.bottom + 8) + 'px'; } } else t.classList.add('hidden'); }
+function tutIdx() {
+  if (S.tut >= TUT.length) return -1;
+  if (S.tut >= 3) return S.tut; // sell / shop stay on progress
+  var grow = false, ready = false;
+  for (var i = 0; i < S.owned; i++) {
+    var st = plotState(i);
+    if (st === 'grow') grow = true;
+    else if (st === 'ready') ready = true;
+  }
+  // state-aware early hints: empty garden → plant; water only when a sprout exists
+  if (ready) return 2;
+  if (grow) return 1;
+  return 0;
+}
+function tut() {
+  var t = $('#tut'), step = tutIdx();
+  if (G.st === 'play' && step >= 0) {
+    t.textContent = TUT[step]; t.classList.remove('hidden');
+    var to = $('.toast'); if (to) { var tr = t.getBoundingClientRect(); if (tr.height) to.style.top = Math.round(tr.bottom + 8) + 'px'; }
+  } else t.classList.add('hidden');
+}
 /* ---------- buttons ---------- */
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('button'); if (!b) return; AU.init();
@@ -1103,7 +1123,7 @@ function update(dt) {
   if (G.wx === 'rain' && G.st === 'play') { G.rainT += dt; if (G.rainT > 4) { G.rainT = 0; for (var i = 0; i < S.owned; i++) if (plotState(i) === 'grow') water(i, true); } }
   if (G.shake > 0) G.shake = Math.max(0, G.shake - dt);
   G.saveT = (G.saveT || 0) + dt; if (G.saveT > 5 && G.st === 'play') { G.saveT = 0; save(); }
-  G.hudT = (G.hudT || 0) + dt; if (G.hudT > .5) { G.hudT = 0; bakeBg(); $('#wxName').textContent = WX[G.wx].n; $('#wxInfo').textContent = WX[G.wx].i + ' · ' + fmt(wxLeft()); }
+  G.hudT = (G.hudT || 0) + dt; if (G.hudT > .5) { G.hudT = 0; bakeBg(); $('#wxName').textContent = WX[G.wx].n; $('#wxInfo').textContent = WX[G.wx].i + ' · ' + fmt(wxLeft()); if (S.tut < 3 && G.st === 'play') tut(); }
   if (G.tut0 !== S.tut) { G.tut0 = S.tut; G.hl = S.tut === 0 ? S.plots.findIndex(function (p, j) { return !p && j < S.owned; }) : -1; }
 }
 var wxIco = $('#wxIco').getContext('2d');
