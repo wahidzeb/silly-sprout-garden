@@ -160,8 +160,8 @@ body:not(.ads-on) .adslot{display:none!important}
 .it{background:linear-gradient(180deg,#fff,#fff6fb)}
 .tabs button{transition:background .15s,transform .1s}.tabs button:active{transform:translateY(2px)}
 @media (orientation:landscape) and (max-height:560px){
- #sheet{top:calc(env(safe-area-inset-top,0px) + 56px);bottom:env(safe-area-inset-bottom,0px);right:84px;padding:0 8px;align-items:flex-end}
- #sheet .in{max-height:100%;overflow-y:auto;border-radius:28px 28px 0 0;border-bottom:0}
+ #sheet{top:calc(env(safe-area-inset-top,0px) + 56px);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);right:84px;padding:0 8px;align-items:flex-end}
+ #sheet .in{max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:24px;border-bottom:3px solid #f6cfe4;padding-bottom:14px}
 }
 .toast{left:0;right:0;margin:0 auto;transform:none;width:max-content;max-width:min(90vw,380px);font-size:16px}
 @media (orientation:landscape) and (max-height:560px){
@@ -908,7 +908,7 @@ function openSeeds(forPlot) { G.sheetWho = 'seeds'; markTab();
     if (!any) { B.appendChild(el('div', 'empty', 'You have no seeds. Buy seed packets in the Shop!')); var r2 = el('div', 'row'); r2.appendChild(btn('Go to Shop', 'g', function () { openShop('seeds'); })); B.appendChild(r2); }
   });
 }
-function updChip() { var c = $('#seedChip'); if (G.seed >= 0 && S.seeds[G.seed] > 0 && G.st === 'play' && S.plots.slice(0, S.owned).some(function (p) { return !p; })) { c.classList.remove('hidden'); $('#chipTx').textContent = RAR[G.seed].n + ' seed x' + S.seeds[G.seed]; var x = $('#chipIco').getContext('2d'); x.clearRect(0, 0, 64, 64); ART.drawPacket(x, 32, 36, 54, G.seed, 0); } else { if (G.seed >= 0 && S.seeds[G.seed] <= 0) G.seed = -1; c.classList.add('hidden'); } }
+function updChip() { var c = $('#seedChip'); if (G.seed >= 0 && S.seeds[G.seed] > 0 && G.st === 'play' && S.plots.slice(0, S.owned).some(function (p) { return !p; })) { c.classList.remove('hidden'); $('#chipTx').textContent = RAR[G.seed].n + ' seed x' + S.seeds[G.seed]; var x = $('#chipIco').getContext('2d'); x.clearRect(0, 0, 64, 64); ART.drawPacket(x, 32, 36, 54, G.seed, 0); } else { if (G.seed >= 0 && S.seeds[G.seed] <= 0) G.seed = -1; c.classList.add('hidden'); }  tutPos(); }
 function openShop(tab) { G.sheetWho = 'bShop'; markTab();
   sheet('Shop', [['seeds', 'Seeds'], ['decor', 'Decor'], ['garden', 'Garden']], tab || 'seeds', function (B, t) {
     B.appendChild(el('div', 'sum', '<span>Your coins</span><span class="pill" style="background:#7a2f6e"><span class="coin"></span>' + S.coins.toLocaleString() + '</span>'));
@@ -963,25 +963,31 @@ function expandModal() { if (S.owned >= NP) return; var cost = plotCost(); modal
 var TUT = ['Tap an empty patch to plant your first seed!', 'Tap your sprout to water it. Splash! It grows faster.', 'When it wiggles and sparkles, tap it to harvest!', 'Open the Sell basket and sell your creature for coins.', 'Buy more seed packets in the Shop!'];
 function tutIdx() {
   if (S.tut >= TUT.length) return -1;
-  if (S.tut >= 3) return S.tut; // sell / shop stay on progress
-  var grow = false, ready = false;
+  // live, state-aware hint: harvest > water > plant > sell > shop
+  var ready = false, dry = false, grow = false, empty = false, seeds = S.seeds.some(function (n) { return n > 0; });
   for (var i = 0; i < S.owned; i++) {
     var st = plotState(i);
-    if (st === 'grow') grow = true;
-    else if (st === 'ready') ready = true;
+    if (st === 'ready') ready = true;
+    else if (st === 'grow') { grow = true; if (!S.plots[i].w) dry = true; }
+    else if (st === 'empty') empty = true;
   }
-  // state-aware early hints: empty garden → plant; water only when a sprout exists
   if (ready) return 2;
+  if (dry) return 1;
+  if (empty && seeds) return 0;
+  if (S.basket.length) return 3;
   if (grow) return 1;
-  return 0;
+  return 4;
 }
 function tut() {
-  var t = $('#tut'), step = tutIdx();
+  if (S.tut < TUT.length && S.tut >= 3 && S.stats.harvest >= 4) { S.tut = TUT.length; zt('tutorial_complete'); }
+  var t = $('#tut'), step = tutIdx(); G.tutS = G.st === 'play' ? step : -2;
   if (G.st === 'play' && step >= 0) {
-    t.textContent = TUT[step]; t.classList.remove('hidden');
-    var to = $('.toast'); if (to) { var tr = t.getBoundingClientRect(); if (tr.height) to.style.top = Math.round(tr.bottom + 8) + 'px'; }
+    t.textContent = step === 0 && S.stats.planted ? 'Tap an empty patch to plant another seed!' : TUT[step]; t.classList.remove('hidden');
+    tutPos(); var to = $('.toast'); if (to) { var tr = t.getBoundingClientRect(); if (tr.height) to.style.top = Math.round(tr.bottom + 8) + 'px'; }
   } else t.classList.add('hidden');
 }
+// keep the hint bubble clear of the seed chip (its own 'x' button) when they share a corner
+function tutPos() { var t = $('#tut'), c = $('#seedChip'); t.style.top = ''; if (t.classList.contains('hidden') || c.classList.contains('hidden')) return; var a = t.getBoundingClientRect(), b = c.getBoundingClientRect(); if (a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom) t.style.top = Math.round(b.bottom + 6) + 'px'; }
 /* ---------- buttons ---------- */
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('button'); if (!b) return; AU.init();
@@ -1122,6 +1128,7 @@ function update(dt) {
   for (var k in G.decAn) if (G.decAn[k] > 0) G.decAn[k] = Math.max(0, G.decAn[k] - dt * 2);
   if (G.wx === 'rain' && G.st === 'play') { G.rainT += dt; if (G.rainT > 4) { G.rainT = 0; for (var i = 0; i < S.owned; i++) if (plotState(i) === 'grow') water(i, true); } }
   if (G.shake > 0) G.shake = Math.max(0, G.shake - dt);
+  if (G.st === 'play' && G.tutS !== tutIdx()) tut();
   G.saveT = (G.saveT || 0) + dt; if (G.saveT > 5 && G.st === 'play') { G.saveT = 0; save(); }
   G.hudT = (G.hudT || 0) + dt; if (G.hudT > .5) { G.hudT = 0; bakeBg(); $('#wxName').textContent = WX[G.wx].n; $('#wxInfo').textContent = WX[G.wx].i + ' · ' + fmt(wxLeft()); if (S.tut < 3 && G.st === 'play') tut(); }
   if (G.tut0 !== S.tut) { G.tut0 = S.tut; G.hl = S.tut === 0 ? S.plots.findIndex(function (p, j) { return !p && j < S.owned; }) : -1; }
